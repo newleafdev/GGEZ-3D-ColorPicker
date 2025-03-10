@@ -18,27 +18,22 @@ const Home: NextPage = () => {
 
       <main className="container mx-auto">
         <h1 className="text-4xl font-bold text-center mb-6 text-white">
-          3D Color Picker Demo
+          GGEZ COLOR PICKER
         </h1>
         
         <div className="flex flex-col items-center justify-center max-w-5xl mx-auto">
           <p className="text-gray-300 mb-8 text-center text-lg max-w-2xl">
-            This demo uses 3D models to create an interactive color picker.
-            You can select colors from the swatches or pick a custom color to apply to the top model.
+            Find the color that's right for you troops.
           </p>
           
           <ColorPicker3D />
           
-          <div className="mt-8 text-sm text-gray-400 text-center">
-            <p>
-              Note: You need to add the 3D model files (bottom.glb and top.glb) to the public directory.
-            </p>
-          </div>
+
         </div>
       </main>
 
       <footer className="mt-12 text-center text-gray-400 text-sm">
-        Created by newleafdev &copy; {new Date().getFullYear()}
+        GGEZ &copy; {new Date().getFullYear()}
       </footer>
     </div>
   );

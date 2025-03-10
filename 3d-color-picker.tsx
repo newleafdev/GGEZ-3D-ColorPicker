@@ -59,15 +59,15 @@ const ColorPicker3D = () => {
     sceneRef.current = scene;
     
     // Camera setup
-    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    camera.position.z = -600;
+    const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 1000);
+    camera.position.z = -900;  // Safe distance within the far clipping plane
     camera.position.y = 4;
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
     
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(300, 300);
+    renderer.setSize(300, 300); // Initial size, will be updated by responsive sizing
     renderer.shadowMap.enabled = true;
     rendererRef.current = renderer;
     
@@ -75,6 +75,41 @@ const ColorPicker3D = () => {
     if (mountRef.current) {
       mountRef.current.appendChild(renderer.domElement);
     }
+    
+    // Set up responsive sizing
+    const handleResize = () => {
+      if (mountRef.current && rendererRef.current && cameraRef.current) {
+        // Get the container's dimensions (respecting aspect-square CSS)
+        const containerWidth = mountRef.current.clientWidth;
+        
+        // Set renderer size to match container (square aspect ratio)
+        rendererRef.current.setSize(containerWidth, containerWidth);
+        
+        // Update camera aspect ratio and adjust field of view for smaller screens
+        cameraRef.current.aspect = 1;
+        
+        // Dynamically adjust the field of view for smaller screens
+        // Wider FOV for smaller screens to fit more content
+        if (containerWidth < 400) {
+          cameraRef.current.fov = 75; // Wider FOV for small screens
+        } else {
+          cameraRef.current.fov = 65; // Default FOV for larger screens
+        }
+        
+        cameraRef.current.updateProjectionMatrix();
+        
+        // Re-render the scene
+        if (sceneRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+      }
+    };
+    
+    // Initial sizing
+    handleResize();
+    
+    // Add resize event listener
+    window.addEventListener('resize', handleResize);
     
     // Enhanced lighting setup for PBR
     // Ambient light (softer)
@@ -112,7 +147,7 @@ const ColorPicker3D = () => {
     scene.add(bounceLight);
     
     // Create box with plastic PBR materials
-    const boxGeometry = new THREE.BoxGeometry(2, 1, 3);
+    const boxGeometry = new THREE.BoxGeometry(1.0, 0.5, 1.5);  // Reduced further to 50% of original size
     
     // Plastic material properties
     const plasticMetalness = 0.0;  // Plastic is non-metallic
@@ -310,9 +345,15 @@ const ColorPicker3D = () => {
     
     // Cleanup
     return () => {
-      cancelAnimationFrame(animationFrameRef.current);
-      mountRef.current?.removeChild(rendererRef.current.domElement);
-      rendererRef.current.dispose();
+      cancelAnimationFrame(animationFrameRef.current!);
+      if (mountRef.current && rendererRef.current) {
+        mountRef.current.removeChild(rendererRef.current.domElement);
+      }
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+      }
+      // Remove resize event listener
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
   
@@ -371,11 +412,11 @@ const ColorPicker3D = () => {
   };
 
   return (
-    <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg shadow-lg max-w-md">
+    <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg shadow-lg max-w-md w-full mx-auto">
       <h2 className="text-xl font-bold mb-4 text-white">3D Color Picker</h2>
       
-      <div className="relative mb-4">
-        <div ref={mountRef} className="rounded-lg overflow-hidden shadow-lg"></div>
+      <div className="relative mb-4 w-full">
+        <div ref={mountRef} className="rounded-lg overflow-hidden shadow-lg w-full aspect-square"></div>
         
         <div className="absolute top-2 right-2 flex space-x-2">
           <button 

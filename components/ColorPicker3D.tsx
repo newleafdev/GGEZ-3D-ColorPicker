@@ -76,13 +76,49 @@ const ColorPicker3D = () => {
     
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(600, 600); // Increased from 300x300 to 600x600
+    renderer.setSize(600, 600); // Initial size, will be updated by responsive sizing
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Enable soft shadows
     rendererRef.current = renderer;
     
     // Add renderer to DOM
     mountRef.current.appendChild(renderer.domElement);
+    
+    // Set up responsive sizing
+    const handleResize = () => {
+      if (mountRef.current && rendererRef.current && cameraRef.current) {
+        // Get the container's dimensions
+        const containerWidth = mountRef.current.clientWidth;
+        
+        // Set renderer size to match container (keeping square aspect)
+        rendererRef.current.setSize(containerWidth, containerWidth);
+        
+        // Update camera aspect ratio
+        cameraRef.current.aspect = 1;
+        
+        // Dynamically adjust FOV based on screen size
+        if (containerWidth < 400) {
+          cameraRef.current.fov = 85; // Wider FOV for small screens
+        } else if (containerWidth < 600) {
+          cameraRef.current.fov = 80; // Medium FOV for medium screens
+        } else {
+          cameraRef.current.fov = 75; // Default FOV for larger screens
+        }
+        
+        cameraRef.current.updateProjectionMatrix();
+        
+        // Re-render the scene
+        if (sceneRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+      }
+    };
+    
+    // Initial sizing
+    handleResize();
+    
+    // Add resize event listener
+    window.addEventListener('resize', handleResize);
     
     // Add OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
