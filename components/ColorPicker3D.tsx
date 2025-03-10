@@ -5,13 +5,44 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const ColorPicker3D = () => {
-  const [color, setColor] = useState('#EEEFFE');
+  const [color, setColor] = useState('#FFFFFF');
   const [predefinedColors, setPredefinedColors] = useState([
-    '#EEEFFE', '#D3B7A7', '#B19533', '#757575', 
-    '#AE96D4', '#950051', '#F99963', '#E7D959',
-    '#DE4343', '#BB3D43', '#706556', '#403324', 
-    '#68724D', '#C2E189'
+    '#FFFFFF', '#CBC6B8', '#D3B7A7', '#AE835B',
+    '#B15533', '#E8DBB7', '#9B9EA0', '#757575',
+    '#AE96D4', '#E8AFCF', '#950051', '#F99963',
+    '#F7D959', '#DE4343', '#BB3D43', '#7D6556',
+    '#4D3324', '#68724D', '#C2E189'
   ]);
+  
+  // Color names mapping
+  const colorNames: {[key: string]: string} = {
+    '#FFFFFF': 'Ivory White',
+    '#CBC6B8': 'Bone White',
+    '#D3B7A7': 'Latte Brown',
+    '#AE835B': 'Caramel',
+    '#B15533': 'Terracotta',
+    '#E8DBB7': 'Desert Tan',
+    '#9B9EA0': 'Ash Gray',
+    '#757575': 'Nardo Gray',
+    '#AE96D4': 'Lilac Purple',
+    '#E8AFCF': 'Sakura Pink',
+    '#950051': 'Plum',
+    '#F99963': 'Mandarin Orange',
+    '#F7D959': 'Lemon Yellow',
+    '#DE4343': 'Scarlet Red',
+    '#BB3D43': 'Dark Red',
+    '#7D6556': 'Dark Brown',
+    '#4D3324': 'Dark Chocolate',
+    '#68724D': 'Dark Green',
+    '#C2E189': 'Apple Green'
+  };
+  
+  // Helper function to get color name
+  const getColorName = (hexColor: string) => {
+    const upperHex = hexColor.toUpperCase();
+    return colorNames[upperHex] || hexColor;
+  };
+  
   const [customColors, setCustomColors] = useState<string[]>([]);
   const [rotateModels, setRotateModels] = useState(false);
   const [rotationSpeed] = useState(0.01);
@@ -481,7 +512,7 @@ const ColorPicker3D = () => {
         {/* Color Picker Controls - Bottom on mobile, Right on desktop */}
         <div className="w-full md:w-1/3 flex flex-col space-y-4 relative z-10">
           <div className="flex flex-col bg-gray-800 p-4 rounded-lg">
-            <span className="text-white text-lg font-medium mb-2">Selected Color: {color}</span>
+            <span className="text-white text-lg font-medium mb-2">Selected: {getColorName(color)}</span>
             <input 
               type="color" 
               value={color}
@@ -496,11 +527,16 @@ const ColorPicker3D = () => {
               {predefinedColors.map((c, i) => (
                 <button
                   key={`preset-${i}`}
-                  className="w-full aspect-square rounded-md border-2 border-gray-700 hover:scale-110 transition-transform shadow-lg"
+                  className="w-full aspect-square rounded-md border-2 border-gray-700 hover:scale-110 transition-transform shadow-lg group relative"
                   style={{ backgroundColor: c }}
                   onClick={() => handleColorChange(c)}
-                  aria-label={`Color ${c}`}
-                />
+                  aria-label={getColorName(c)}
+                  title={getColorName(c)}
+                >
+                  <span className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 opacity-0 group-hover:opacity-100 overflow-hidden text-center whitespace-nowrap">
+                    {getColorName(c)}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
@@ -512,11 +548,16 @@ const ColorPicker3D = () => {
                 {customColors.map((c, i) => (
                   <button
                     key={`custom-${i}`}
-                    className="w-full aspect-square rounded-md border border-gray-700 hover:scale-110 transition-transform shadow-lg"
+                    className="w-full aspect-square rounded-md border border-gray-700 hover:scale-110 transition-transform shadow-lg group relative"
                     style={{ backgroundColor: c }}
                     onClick={() => handleColorChange(c)}
-                    aria-label={`Custom color ${c}`}
-                  />
+                    aria-label={getColorName(c)}
+                    title={getColorName(c)}
+                  >
+                    <span className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 opacity-0 group-hover:opacity-100 overflow-hidden text-center whitespace-nowrap">
+                      {getColorName(c)}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>

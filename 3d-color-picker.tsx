@@ -5,10 +5,42 @@ import { Camera, RefreshCw } from 'lucide-react';
 const ColorPicker3D = () => {
   const [color, setColor] = useState('#ff4500');
   const [predefinedColors, setPredefinedColors] = useState([
-    '#ff4500', '#ff8c00', '#ffd700', '#32cd32', 
-    '#00bfff', '#0000ff', '#8a2be2', '#ff00ff',
-    '#ff1493', '#ffffff', '#c0c0c0', '#000000'
+    '#FFFFFF', '#CBC6B8', '#D3B7A7', '#AE835B',
+    '#B15533', '#E8DBB7', '#9B9EA0', '#757575',
+    '#AE96D4', '#E8AFCF', '#950051', '#F99963',
+    '#F7D959', '#DE4343', '#BB3D43', '#7D6556',
+    '#4D3324', '#68724D', '#C2E189'
   ]);
+  
+  // Color names mapping
+  const colorNames: {[key: string]: string} = {
+    '#FFFFFF': 'Ivory White',
+    '#CBC6B8': 'Bone White',
+    '#D3B7A7': 'Latte Brown',
+    '#AE835B': 'Caramel',
+    '#B15533': 'Terracotta',
+    '#E8DBB7': 'Desert Tan',
+    '#9B9EA0': 'Ash Gray',
+    '#757575': 'Nardo Gray',
+    '#AE96D4': 'Lilac Purple',
+    '#E8AFCF': 'Sakura Pink',
+    '#950051': 'Plum',
+    '#F99963': 'Mandarin Orange',
+    '#F7D959': 'Lemon Yellow',
+    '#DE4343': 'Scarlet Red',
+    '#BB3D43': 'Dark Red',
+    '#7D6556': 'Dark Brown',
+    '#4D3324': 'Dark Chocolate',
+    '#68724D': 'Dark Green',
+    '#C2E189': 'Apple Green'
+  };
+  
+  // Helper function to get color name
+  const getColorName = (hexColor: string) => {
+    const upperHex = hexColor.toUpperCase();
+    return colorNames[upperHex] || hexColor;
+  };
+  
   const [customColors, setCustomColors] = useState<string[]>([]);
   const [rotateBox, setRotateBox] = useState(true);
   
@@ -364,7 +396,7 @@ const ColorPicker3D = () => {
       
       <div className="w-full mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-white text-sm font-medium">Selected Color: {color}</span>
+          <span className="text-white text-sm font-medium">Selected: {getColorName(color)}</span>
           <input 
             type="color" 
             value={color}
@@ -377,11 +409,16 @@ const ColorPicker3D = () => {
           {predefinedColors.map((c, i) => (
             <button
               key={`preset-${i}`}
-              className="w-full aspect-square rounded-sm border border-gray-700 hover:scale-110 transition"
+              className="w-full aspect-square rounded-sm border border-gray-700 hover:scale-110 transition group relative"
               style={{ backgroundColor: c }}
               onClick={() => handleColorChange(c)}
-              aria-label={`Color ${c}`}
-            />
+              aria-label={getColorName(c)}
+              title={getColorName(c)}
+            >
+              <span className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 opacity-0 group-hover:opacity-100 overflow-hidden text-center whitespace-nowrap">
+                {getColorName(c)}
+              </span>
+            </button>
           ))}
         </div>
         
@@ -392,11 +429,16 @@ const ColorPicker3D = () => {
               {customColors.map((c, i) => (
                 <button
                   key={`custom-${i}`}
-                  className="w-full aspect-square rounded-sm border border-gray-700 hover:scale-110 transition"
+                  className="w-full aspect-square rounded-sm border border-gray-700 hover:scale-110 transition group relative"
                   style={{ backgroundColor: c }}
                   onClick={() => handleColorChange(c)}
-                  aria-label={`Custom color ${c}`}
-                />
+                  aria-label={getColorName(c)}
+                  title={getColorName(c)}
+                >
+                  <span className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 opacity-0 group-hover:opacity-100 overflow-hidden text-center whitespace-nowrap">
+                    {getColorName(c)}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
