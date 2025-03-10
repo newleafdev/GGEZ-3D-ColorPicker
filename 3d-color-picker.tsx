@@ -28,8 +28,8 @@ const ColorPicker3D = () => {
     
     // Camera setup
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    camera.position.z = 5;
-    camera.position.y = 2;
+    camera.position.z = -500;
+    camera.position.y = 4;
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
     
@@ -82,8 +82,8 @@ const ColorPicker3D = () => {
     
     // Plastic material properties
     const plasticMetalness = 0.0;  // Plastic is non-metallic
-    const plasticRoughness = 0.3;  // Moderate roughness for plastic
-    const plasticClearcoat = 1.0;  // Clearcoat for plastic sheen
+    const plasticRoughness = 0.5;  // Moderate roughness for plastic
+    const plasticClearcoat = 0.5;  // Clearcoat for plastic sheen
     const plasticClearcoatRoughness = 0.1;  // Smooth clearcoat
     
     // Create materials with MeshPhysicalMaterial for plastic look

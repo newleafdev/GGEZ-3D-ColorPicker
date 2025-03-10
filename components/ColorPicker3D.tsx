@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Camera, RefreshCw } from 'lucide-react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 const ColorPicker3D = () => {
   const [color, setColor] = useState('#ff4500');
@@ -11,7 +12,7 @@ const ColorPicker3D = () => {
     '#ff1493', '#ffffff', '#c0c0c0', '#000000'
   ]);
   const [customColors, setCustomColors] = useState<string[]>([]);
-  const [rotateModels, setRotateModels] = useState(true);
+  const [rotateModels, setRotateModels] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   const mountRef = useRef<HTMLDivElement>(null);
@@ -22,6 +23,7 @@ const ColorPicker3D = () => {
   const bottomModelRef = useRef<THREE.Object3D | null>(null);
   const groupRef = useRef<THREE.Group | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
   
   // Initialize Three.js scene
   useEffect(() => {
@@ -34,19 +36,31 @@ const ColorPicker3D = () => {
     
     // Camera setup
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    camera.position.z = 5;
-    camera.position.y = 2;
+    camera.position.z = 100; // Increased from 15 to 20 to zoom out more
+    camera.position.y = 3;  // Increased from 2 to 3 for a better viewing angle
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
     
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(300, 300);
+    renderer.setSize(600, 600); // Increased from 300x300 to 600x600
     renderer.shadowMap.enabled = true;
     rendererRef.current = renderer;
     
     // Add renderer to DOM
     mountRef.current.appendChild(renderer.domElement);
+    
+    // Add OrbitControls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; // Adds smoothness to the controls
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 3;  // Reduced from 5 to 3 for better close-up views
+    controls.maxDistance = 30; // Increased from 25 to 30 for more zoom-out capability
+    controls.autoRotate = rotateModels; // Use the existing rotation state
+    controls.autoRotateSpeed = 3; // Rotation speed
+    controls.target.set(0, 0, 0); // Target is the center of the scene
+    controls.update();
+    controlsRef.current = controls; // Store controls in the ref
     
     // Enhanced lighting setup for PBR
     // Ambient light (softer)
@@ -145,7 +159,9 @@ const ColorPicker3D = () => {
           
           // Position and scale as needed
           model.position.y = 0;
-          model.rotation.y = Math.PI; // Adjust as needed
+          model.rotation.x = Math.PI / 2; // 90 degrees rotation in X
+          model.rotation.y = 0; // Reset Y rotation
+          model.scale.set(0.15, 0.15, 0.15); // Scale down the bottom model to 15% of its original size
           group.add(model);
           bottomModelRef.current = model;
           resolve();
@@ -175,7 +191,10 @@ const ColorPicker3D = () => {
           
           // Position and scale as needed
           model.position.y = 0.5; // Position on top of the bottom model
-          model.rotation.y = Math.PI; // Adjust as needed
+          model.rotation.x =  Math.PI ; // 360 degrees rotation in X
+          model.rotation.y = - Math.PI ; // 90 degrees rotation in Y
+          model.rotation.z = Math.PI;
+          model.scale.set(0.15, 0.15, 0.15); // Scale down the top model to 15% of its original size
           group.add(model);
           topModelRef.current = model;
           resolve();
@@ -242,6 +261,7 @@ const ColorPicker3D = () => {
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
+    floor.visible = false; // Hide the floor
     scene.add(floor);
     
     // Helper function to create grid texture
@@ -307,11 +327,10 @@ const ColorPicker3D = () => {
     
     // Animation function
     const animate = () => {
-      if (rotateModels && groupRef.current) {
-        groupRef.current.rotation.y += 0.005;
-      }
-      
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
+        // Update controls in animation loop
+        controls.update();
+        
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
       
@@ -326,8 +345,19 @@ const ColorPicker3D = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
       
+      if (controlsRef.current) {
+        controlsRef.current.dispose(); // Clean up controls
+      }
+      
       if (mountRef.current && rendererRef.current) {
-        mountRef.current.removeChild(rendererRef.current.domElement);
+        try {
+          // Check if the element is actually a child before trying to remove it
+          if (mountRef.current.contains(rendererRef.current.domElement)) {
+            mountRef.current.removeChild(rendererRef.current.domElement);
+          }
+        } catch (error) {
+          console.warn('Issue removing renderer from DOM:', error);
+        }
       }
       
       if (rendererRef.current) {
@@ -335,6 +365,13 @@ const ColorPicker3D = () => {
       }
     };
   }, []);
+  
+  // Update OrbitControls when rotation preference changes
+  useEffect(() => {
+    if (controlsRef.current) {
+      controlsRef.current.autoRotate = rotateModels;
+    }
+  }, [rotateModels]);
   
   // Update color when changed
   useEffect(() => {
@@ -404,78 +441,85 @@ const ColorPicker3D = () => {
   };
 
   return (
-    <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg shadow-lg max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4 text-white">3D Color Picker</h2>
+    <div className="flex flex-col items-center bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-5xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-white">3D Color Picker</h2>
       
-      <div className="relative mb-4">
-        <div ref={mountRef} className="rounded-lg overflow-hidden shadow-lg">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-            </div>
-          )}
-        </div>
-        
-        <div className="absolute top-2 right-2 flex space-x-2">
-          <button 
-            onClick={toggleRotation}
-            className="p-1 bg-gray-800 rounded-full text-white opacity-70 hover:opacity-100 transition"
-          >
-            <RefreshCw size={16} color={rotateModels ? "lightgreen" : "white"} />
-          </button>
+      <div className="flex flex-row w-full space-x-6">
+        {/* 3D Model Viewer - Left Side */}
+        <div className="relative w-2/3">
+          <div ref={mountRef} className="rounded-lg overflow-hidden shadow-lg w-full aspect-square bg-black">
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+              </div>
+            )}
+          </div>
           
-          <button 
-            onClick={takeScreenshot}
-            className="p-1 bg-gray-800 rounded-full text-white opacity-70 hover:opacity-100 transition"
-          >
-            <Camera size={16} />
-          </button>
-        </div>
-      </div>
-      
-      <div className="w-full mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-white text-sm font-medium">Selected Color: {color}</span>
-          <input 
-            type="color" 
-            value={color}
-            onChange={handleCustomColorChange}
-            className="w-8 h-8 rounded cursor-pointer"
-          />
+          <div className="absolute top-2 right-2 flex space-x-2 z-10">
+            <button 
+              onClick={toggleRotation}
+              className="p-2 bg-gray-800 rounded-full text-white opacity-70 hover:opacity-100 transition"
+            >
+              <RefreshCw size={20} color={rotateModels ? "lightgreen" : "white"} />
+            </button>
+            
+            <button 
+              onClick={takeScreenshot}
+              className="p-2 bg-gray-800 rounded-full text-white opacity-70 hover:opacity-100 transition"
+            >
+              <Camera size={20} />
+            </button>
+          </div>
         </div>
         
-        <div className="grid grid-cols-6 gap-2 mb-4">
-          {predefinedColors.map((c, i) => (
-            <button
-              key={`preset-${i}`}
-              className="w-full aspect-square rounded-sm border border-gray-700 hover:scale-110 transition"
-              style={{ backgroundColor: c }}
-              onClick={() => handleColorChange(c)}
-              aria-label={`Color ${c}`}
+        {/* Color Picker Controls - Right Side */}
+        <div className="w-1/3 flex flex-col space-y-4 relative z-10">
+          <div className="flex flex-col bg-gray-800 p-4 rounded-lg">
+            <span className="text-white text-lg font-medium mb-2">Selected Color: {color}</span>
+            <input 
+              type="color" 
+              value={color}
+              onChange={handleCustomColorChange}
+              className="w-full h-12 rounded cursor-pointer"
             />
-          ))}
-        </div>
-        
-        {customColors.length > 0 && (
-          <div className="mt-2">
-            <p className="text-gray-300 text-xs mb-1">Recent Colors:</p>
-            <div className="grid grid-cols-8 gap-1">
-              {customColors.map((c, i) => (
+          </div>
+          
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <p className="text-gray-300 text-sm mb-2">Preset Colors:</p>
+            <div className="grid grid-cols-4 gap-3">
+              {predefinedColors.map((c, i) => (
                 <button
-                  key={`custom-${i}`}
-                  className="w-full aspect-square rounded-sm border border-gray-700 hover:scale-110 transition"
+                  key={`preset-${i}`}
+                  className="w-full aspect-square rounded-md border-2 border-gray-700 hover:scale-110 transition-transform shadow-lg"
                   style={{ backgroundColor: c }}
                   onClick={() => handleColorChange(c)}
-                  aria-label={`Custom color ${c}`}
+                  aria-label={`Color ${c}`}
                 />
               ))}
             </div>
           </div>
-        )}
-      </div>
-      
-      <div className="text-gray-400 text-xs">
-        Click on a color swatch to apply it to the top model
+          
+          {customColors.length > 0 && (
+            <div className="bg-gray-800 p-4 rounded-lg">
+              <p className="text-gray-300 text-sm mb-2">Recent Colors:</p>
+              <div className="grid grid-cols-4 gap-2">
+                {customColors.map((c, i) => (
+                  <button
+                    key={`custom-${i}`}
+                    className="w-full aspect-square rounded-md border border-gray-700 hover:scale-110 transition-transform shadow-lg"
+                    style={{ backgroundColor: c }}
+                    onClick={() => handleColorChange(c)}
+                    aria-label={`Custom color ${c}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="text-gray-400 text-sm bg-gray-800 px-4 py-2 rounded-lg">
+            Click on a color swatch to apply it to the top model
+          </div>
+        </div>
       </div>
     </div>
   );

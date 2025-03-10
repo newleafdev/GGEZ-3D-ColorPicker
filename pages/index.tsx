@@ -9,20 +9,20 @@ const ColorPicker3D = dynamic(() => import('../components/ColorPicker3D'), {
 
 const Home: NextPage = () => {
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-8 px-4 bg-gray-800">
       <Head>
         <title>3D Color Picker</title>
         <meta name="description" content="Interactive 3D Color Picker using Three.js and Next.js" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">
+      <main className="container mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-6 text-white">
           3D Color Picker Demo
         </h1>
         
-        <div className="flex flex-col items-center justify-center">
-          <p className="text-gray-300 mb-8 text-center max-w-lg">
+        <div className="flex flex-col items-center justify-center max-w-5xl mx-auto">
+          <p className="text-gray-300 mb-8 text-center text-lg max-w-2xl">
             This demo uses 3D models to create an interactive color picker.
             You can select colors from the swatches or pick a custom color to apply to the top model.
           </p>
@@ -37,7 +37,7 @@ const Home: NextPage = () => {
         </div>
       </main>
 
-      <footer className="mt-12 text-center text-gray-500 text-sm">
+      <footer className="mt-12 text-center text-gray-400 text-sm">
         Created by newleafdev &copy; {new Date().getFullYear()}
       </footer>
     </div>
