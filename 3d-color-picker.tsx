@@ -9,15 +9,15 @@ const ColorPicker3D = () => {
     '#00bfff', '#0000ff', '#8a2be2', '#ff00ff',
     '#ff1493', '#ffffff', '#c0c0c0', '#000000'
   ]);
-  const [customColors, setCustomColors] = useState([]);
+  const [customColors, setCustomColors] = useState<string[]>([]);
   const [rotateBox, setRotateBox] = useState(true);
   
-  const mountRef = useRef(null);
-  const sceneRef = useRef(null);
-  const cameraRef = useRef(null);
-  const rendererRef = useRef(null);
-  const boxRef = useRef(null);
-  const animationFrameRef = useRef(null);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const boxRef = useRef<THREE.Mesh | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   
   // Initialize Three.js scene
   useEffect(() => {
@@ -28,7 +28,7 @@ const ColorPicker3D = () => {
     
     // Camera setup
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    camera.position.z = -500;
+    camera.position.z = -600;
     camera.position.y = 4;
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
@@ -40,7 +40,9 @@ const ColorPicker3D = () => {
     rendererRef.current = renderer;
     
     // Add renderer to DOM
-    mountRef.current.appendChild(renderer.domElement);
+    if (mountRef.current) {
+      mountRef.current.appendChild(renderer.domElement);
+    }
     
     // Enhanced lighting setup for PBR
     // Ambient light (softer)
@@ -196,69 +198,79 @@ const ColorPicker3D = () => {
     scene.add(floor);
     
     // Helper function to create grid texture
-    function createGridTexture(size, lineColor, backgroundColor) {
+    function createGridTexture(size: number, lineColor: number, backgroundColor: number) {
       const canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
       
-      // Fill background
-      ctx.fillStyle = `#${backgroundColor.toString(16).padStart(6, '0')}`;
-      ctx.fillRect(0, 0, size, size);
-      
-      // Draw grid lines
-      ctx.strokeStyle = `#${lineColor.toString(16).padStart(6, '0')}`;
-      ctx.lineWidth = 2;
-      
-      const gridSize = size / 10;
-      ctx.beginPath();
-      
-      // Vertical lines
-      for (let i = 0; i <= size; i += gridSize) {
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, size);
+      if (ctx) {
+        // Fill background
+        ctx.fillStyle = `#${backgroundColor.toString(16).padStart(6, '0')}`;
+        ctx.fillRect(0, 0, size, size);
+        
+        // Draw grid lines
+        ctx.strokeStyle = `#${lineColor.toString(16).padStart(6, '0')}`;
+        ctx.lineWidth = 2;
+        
+        const gridSize = size / 10;
+        ctx.beginPath();
+        
+        // Vertical lines
+        for (let i = 0; i <= size; i += gridSize) {
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i, size);
+        }
+        
+        // Horizontal lines
+        for (let i = 0; i <= size; i += gridSize) {
+          ctx.moveTo(0, i);
+          ctx.lineTo(size, i);
+        }
+        
+        ctx.stroke();
       }
-      
-      // Horizontal lines
-      for (let i = 0; i <= size; i += gridSize) {
-        ctx.moveTo(0, i);
-        ctx.lineTo(size, i);
-      }
-      
-      ctx.stroke();
       return canvas;
     }
     
     // Helper function to create noise texture for normal map
-    function createNoiseTexture(size, intensity) {
+    function createNoiseTexture(size: number, intensity: number) {
       const canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
       
-      // Create noise
-      const imageData = ctx.createImageData(size, size);
-      const data = imageData.data;
-      
-      for (let i = 0; i < data.length; i += 4) {
-        const value = 128 + (Math.random() - 0.5) * intensity * 255;
-        data[i] = value;     // r
-        data[i + 1] = value; // g
-        data[i + 2] = 255;   // b - full blue for normal map
-        data[i + 3] = 255;   // alpha
+      if (ctx) {
+        // Create noise
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const value = 128 + (Math.random() - 0.5) * intensity * 255;
+          data[i] = value;     // r
+          data[i + 1] = value; // g
+          data[i + 2] = 255;   // b - full blue for normal map
+          data[i + 3] = 255;   // alpha
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
       }
-      
-      ctx.putImageData(imageData, 0, 0);
       return canvas;
     }
     
     // Animation function
     const animate = () => {
-      if (rotateBox && boxRef.current) {
-        boxRef.current.rotation.y += 0.005;
+      if (rendererRef.current && sceneRef.current && cameraRef.current) {
+        // Update box position based on rotation state
+        if (rotateBox && boxRef.current) {
+          boxRef.current.rotation.y += 0.01;
+        }
+        
+        // Render scene
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
       
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      // Request next frame
       animationFrameRef.current = requestAnimationFrame(animate);
     };
     
@@ -300,11 +312,11 @@ const ColorPicker3D = () => {
     }
   }, [color]);
   
-  const handleColorChange = (newColor) => {
+  const handleColorChange = (newColor: string) => {
     setColor(newColor);
   };
   
-  const handleCustomColorChange = (e) => {
+  const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.target.value;
     setColor(newColor);
     

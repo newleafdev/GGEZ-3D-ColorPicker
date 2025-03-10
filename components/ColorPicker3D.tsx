@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Camera, RefreshCw } from 'lucide-react';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const ColorPicker3D = () => {
-  const [color, setColor] = useState('#ff4500');
+  const [color, setColor] = useState('#EEEFFE');
   const [predefinedColors, setPredefinedColors] = useState([
-    '#ff4500', '#ff8c00', '#ffd700', '#32cd32', 
-    '#00bfff', '#0000ff', '#8a2be2', '#ff00ff',
-    '#ff1493', '#ffffff', '#c0c0c0', '#000000'
+    '#EEEFFE', '#D3B7A7', '#B19533', '#757575', 
+    '#AE96D4', '#950051', '#F99963', '#E7D959',
+    '#DE4343', '#BB3D43', '#706556', '#403324', 
+    '#68724D', '#C2E189'
   ]);
   const [customColors, setCustomColors] = useState<string[]>([]);
   const [rotateModels, setRotateModels] = useState(false);
+  const [rotationSpeed] = useState(0.01);
   const [isLoading, setIsLoading] = useState(true);
   
   const mountRef = useRef<HTMLDivElement>(null);
@@ -45,6 +47,7 @@ const ColorPicker3D = () => {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(600, 600); // Increased from 300x300 to 600x600
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Enable soft shadows
     rendererRef.current = renderer;
     
     // Add renderer to DOM
@@ -54,49 +57,54 @@ const ColorPicker3D = () => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; // Adds smoothness to the controls
     controls.dampingFactor = 0.05;
-    controls.minDistance = 3;  // Reduced from 5 to 3 for better close-up views
-    controls.maxDistance = 30; // Increased from 25 to 30 for more zoom-out capability
-    controls.autoRotate = rotateModels; // Use the existing rotation state
-    controls.autoRotateSpeed = 3; // Rotation speed
-    controls.target.set(0, 0, 0); // Target is the center of the scene
+    controls.minDistance = 3;
+    controls.maxDistance = 30;
+    controls.autoRotate = false; // Disable auto rotate for the camera
+    controls.autoRotateSpeed = 3;
+    controls.target.set(0, 0, 0);
     controls.update();
-    controlsRef.current = controls; // Store controls in the ref
+    controlsRef.current = controls;
     
-    // Enhanced lighting setup for PBR
-    // Ambient light (softer)
-    const ambientLight = new THREE.AmbientLight(0x202020, 0.5);
+    // Natural lighting setup
+    // Hemisphere light (sky and ground colors for natural ambient lighting)
+    const hemisphereLight = new THREE.HemisphereLight(
+      0x93c5ff, // Sky color - soft blue
+      0x3d2b1f, // Ground color - soft brown
+      0.7       // Intensity
+    );
+    scene.add(hemisphereLight);
+    
+    // Ambient light (adds soft global illumination)
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
     scene.add(ambientLight);
     
     // Main directional light (sun-like)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    directionalLight.position.set(5, 10, 7);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(10, 15, 8);
     directionalLight.castShadow = true;
+    
     // Improve shadow quality
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.bias = -0.001;
+    directionalLight.shadow.bias = -0.0005;
+    directionalLight.shadow.radius = 4; // Add blur to the shadow edges
+    
+    // Expand shadow camera frustum for better coverage
+    const shadowSize = 15;
+    directionalLight.shadow.camera.left = -shadowSize;
+    directionalLight.shadow.camera.right = shadowSize;
+    directionalLight.shadow.camera.top = shadowSize;
+    directionalLight.shadow.camera.bottom = -shadowSize;
+    
     scene.add(directionalLight);
     
-    // Rim light (cooler tone)
-    const rimLight = new THREE.PointLight(0x6495ED, 1);
-    rimLight.position.set(-5, 3, -5);
-    scene.add(rimLight);
-    
-    // Fill light (warmer tone)
-    const fillLight = new THREE.PointLight(0xFFD700, 0.7);
-    fillLight.position.set(-5, 5, 5);
-    fillLight.castShadow = true;
-    fillLight.shadow.mapSize.width = 512;
-    fillLight.shadow.mapSize.height = 512;
+    // Secondary directional light (fill light) - much softer
+    const fillLight = new THREE.DirectionalLight(0xffffeb, 0.4); // Slightly warm
+    fillLight.position.set(-5, 3, -4);
     scene.add(fillLight);
     
-    // Ground bounce light (subtle)
-    const bounceLight = new THREE.PointLight(0x3D3D3D, 0.4);
-    bounceLight.position.set(0, -2, 3);
-    scene.add(bounceLight);
-
     // Create group for models
     const group = new THREE.Group();
     scene.add(group);
@@ -132,11 +140,11 @@ const ColorPicker3D = () => {
     const topMaterial = new THREE.MeshPhysicalMaterial({ 
       color: new THREE.Color(color), 
       metalness: plasticMetalness,
-      roughness: plasticRoughness * 0.8,
+      roughness: plasticRoughness * 1.8,
       envMapIntensity: 1.0,
-      clearcoat: plasticClearcoat,
+      clearcoat: 0,
       clearcoatRoughness: plasticClearcoatRoughness,
-      reflectivity: 0.5,
+      reflectivity: 0.01,
       envMap: cubeRenderTarget.texture
     });
     
@@ -147,9 +155,9 @@ const ColorPicker3D = () => {
     const bottomPromise = new Promise<void>((resolve, reject) => {
       loader.load(
         '/bottom.glb',
-        (gltf) => {
+        (gltf: { scene: THREE.Object3D }) => {
           const model = gltf.scene;
-          model.traverse((child) => {
+          model.traverse((child: THREE.Object3D) => {
             if ((child as THREE.Mesh).isMesh) {
               (child as THREE.Mesh).material = bottomMaterial;
               (child as THREE.Mesh).castShadow = true;
@@ -167,7 +175,7 @@ const ColorPicker3D = () => {
           resolve();
         },
         undefined,
-        (error) => {
+        (error: unknown) => {
           console.error('Error loading bottom model:', error);
           reject(error);
         }
@@ -179,9 +187,9 @@ const ColorPicker3D = () => {
     const topPromise = new Promise<void>((resolve, reject) => {
       loader.load(
         '/top.glb',
-        (gltf) => {
+        (gltf: { scene: THREE.Object3D }) => {
           const model = gltf.scene;
-          model.traverse((child) => {
+          model.traverse((child: THREE.Object3D) => {
             if ((child as THREE.Mesh).isMesh) {
               (child as THREE.Mesh).material = topMaterial;
               (child as THREE.Mesh).castShadow = true;
@@ -200,7 +208,7 @@ const ColorPicker3D = () => {
           resolve();
         },
         undefined,
-        (error) => {
+        (error: unknown) => {
           console.error('Error loading top model:', error);
           reject(error);
         }
@@ -331,6 +339,11 @@ const ColorPicker3D = () => {
         // Update controls in animation loop
         controls.update();
         
+        // Add object rotation if enabled
+        if (rotateModels && groupRef.current) {
+          groupRef.current.rotation.y += rotationSpeed; // Rotate around Y-axis
+        }
+        
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
       
@@ -364,14 +377,7 @@ const ColorPicker3D = () => {
         rendererRef.current.dispose();
       }
     };
-  }, []);
-  
-  // Update OrbitControls when rotation preference changes
-  useEffect(() => {
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = rotateModels;
-    }
-  }, [rotateModels]);
+  }, [rotationSpeed, rotateModels]);
   
   // Update color when changed
   useEffect(() => {
@@ -441,12 +447,12 @@ const ColorPicker3D = () => {
   };
 
   return (
-    <div className="flex flex-col items-center bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-white">3D Color Picker</h2>
+    <div className="flex flex-col items-center bg-gray-900 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-5xl mx-auto">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white">3D Color Picker</h2>
       
-      <div className="flex flex-row w-full space-x-6">
-        {/* 3D Model Viewer - Left Side */}
-        <div className="relative w-2/3">
+      <div className="flex flex-col md:flex-row w-full md:space-x-6 space-y-4 md:space-y-0">
+        {/* 3D Model Viewer - Top on mobile, Left on desktop */}
+        <div className="relative w-full md:w-2/3">
           <div ref={mountRef} className="rounded-lg overflow-hidden shadow-lg w-full aspect-square bg-black">
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
@@ -472,8 +478,8 @@ const ColorPicker3D = () => {
           </div>
         </div>
         
-        {/* Color Picker Controls - Right Side */}
-        <div className="w-1/3 flex flex-col space-y-4 relative z-10">
+        {/* Color Picker Controls - Bottom on mobile, Right on desktop */}
+        <div className="w-full md:w-1/3 flex flex-col space-y-4 relative z-10">
           <div className="flex flex-col bg-gray-800 p-4 rounded-lg">
             <span className="text-white text-lg font-medium mb-2">Selected Color: {color}</span>
             <input 
@@ -486,7 +492,7 @@ const ColorPicker3D = () => {
           
           <div className="bg-gray-800 p-4 rounded-lg">
             <p className="text-gray-300 text-sm mb-2">Preset Colors:</p>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-7 md:grid-cols-4 gap-2 sm:gap-3">
               {predefinedColors.map((c, i) => (
                 <button
                   key={`preset-${i}`}
@@ -502,7 +508,7 @@ const ColorPicker3D = () => {
           {customColors.length > 0 && (
             <div className="bg-gray-800 p-4 rounded-lg">
               <p className="text-gray-300 text-sm mb-2">Recent Colors:</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-7 md:grid-cols-4 gap-2">
                 {customColors.map((c, i) => (
                   <button
                     key={`custom-${i}`}
